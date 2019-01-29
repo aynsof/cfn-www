@@ -39,7 +39,7 @@ Resources:
       InstanceTenancy: default
       Tags:
       - Key: Name
-        Value: !Sub '10.${ClassB}.0.0/16'
+        Value: 'vpc-test'
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
@@ -120,20 +120,20 @@ Resources:
         Value: 'C private'
       - Key: Reach
         Value: private
-  RouteTablePublic: # should be RouteTableAPublic, but logical id was not changed for backward compatibility
+  RouteTableAPublic:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
       - Key: Name
-        Value: Public
-  RouteTablePrivate: # should be RouteTableAPrivate, but logical id was not changed for backward compatibility
+        Value: 'A Public'
+  RouteTableAPrivate:
     Type: 'AWS::EC2::RouteTable'
     Properties:
       VpcId: !Ref VPC
       Tags:
       - Key: Name
-        Value: Private
+        Value: 'A Private'
   RouteTableBPublic:
     Type: 'AWS::EC2::RouteTable'
     Properties:
@@ -166,12 +166,12 @@ Resources:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref SubnetAPublic
-      RouteTableId: !Ref RouteTablePublic
+      RouteTableId: !Ref RouteTableAPublic
   RouteTableAssociationAPrivate:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref SubnetAPrivate
-      RouteTableId: !Ref RouteTablePrivate
+      RouteTableId: !Ref RouteTableAPrivate
   RouteTableAssociationBPublic:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -192,11 +192,11 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetCPrivate
       RouteTableId: !Ref RouteTableCPrivate
-  RouteTablePublicInternetRoute: # should be RouteTablePublicAInternetRoute, but logical id was not changed for backward compatibility
+  RouteTablePublicAInternetRoute:
     Type: 'AWS::EC2::Route'
     DependsOn: VPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref RouteTablePublic
+      RouteTableId: !Ref RouteTableAPublic
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref InternetGateway
   RouteTablePublicBInternetRoute:
@@ -345,12 +345,12 @@ Outputs:
       Name: !Sub '${AWS::StackName}-SubnetsPrivate'
   RouteTablesPrivate:
     Description: 'Route tables private.'
-    Value: !Join [',', [!Ref RouteTablePrivate, !Ref RouteTableBPrivate, !Ref RouteTableCPrivate]]
+    Value: !Join [',', [!Ref RouteTableAPrivate, !Ref RouteTableBPrivate, !Ref RouteTableCPrivate]]
     Export:
       Name: !Sub '${AWS::StackName}-RouteTablesPrivate'
   RouteTablesPublic:
     Description: 'Route tables public.'
-    Value: !Join [',', [!Ref RouteTablePublic, !Ref RouteTableBPublic, !Ref RouteTableCPublic]]
+    Value: !Join [',', [!Ref RouteTableAPublic, !Ref RouteTableBPublic, !Ref RouteTableCPublic]]
     Export:
       Name: !Sub '${AWS::StackName}-RouteTablesPublic'
   SubnetAPublic:
@@ -360,7 +360,7 @@ Outputs:
       Name: !Sub '${AWS::StackName}-SubnetAPublic'
   RouteTableAPublic:
     Description: 'Route table A public.'
-    Value: !Ref RouteTablePublic
+    Value: !Ref RouteTableAPublic
     Export:
       Name: !Sub '${AWS::StackName}-RouteTableAPublic'
   SubnetAPrivate:
@@ -370,7 +370,7 @@ Outputs:
       Name: !Sub '${AWS::StackName}-SubnetAPrivate'
   RouteTableAPrivate:
     Description: 'Route table A private.'
-    Value: !Ref RouteTablePrivate
+    Value: !Ref RouteTableAPrivate
     Export:
       Name: !Sub '${AWS::StackName}-RouteTableAPrivate'
   SubnetBPublic:

@@ -1,3 +1,7 @@
+language: generic
+
+sudo: required
+
 deploy:
   provider: script
   script: bash .pipeline/deploy.sh

@@ -9,14 +9,11 @@ before_install:
   - echo "Installing AWS CLI"
   - pip install --upgrade --user awscli
 
-jobs:
-  include:
-    - stage: deploy
-      script:
-      - echo "Deploying"
-      - aws cloudformation update-stack --stack-name vpc-test --template-body file://vpc.yaml
-    - stage: test
-      script:
-      - bundle install
-      - bundle exec rake spec
+script:
+  - echo "Deploying"
+  - aws cloudformation update-stack --stack-name vpc-test --template-body file://vpc.yaml
+
+after_success:
+  - bundle install
+  - bundle exec rake spec
 

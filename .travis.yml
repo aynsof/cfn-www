@@ -5,6 +5,10 @@ env:
 
 sudo: required
 
+before_install:
+  - echo "Installing AWS CLI"
+  - pip install --upgrade --user awscli
+
 jobs:
   include:
     - stage: deploy

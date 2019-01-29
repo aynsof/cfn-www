@@ -1,4 +1,7 @@
 language: generic
+env:
+  global:
+    - AWS_REGION=ap-southeast-2
 sudo: required
 deploy:
   provider: script

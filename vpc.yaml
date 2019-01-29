@@ -45,7 +45,7 @@ Resources:
     Properties:
       Tags:
       - Key: Name
-        Value: !Sub '10.${ClassB}.0.0/16'
+        Value: !Sub 'vpc-test-igw'
   VPCGatewayAttachment:
     Type: 'AWS::EC2::VPCGatewayAttachment'
     Properties:

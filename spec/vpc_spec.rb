@@ -12,6 +12,11 @@ describe vpc('vpc-test') do
   it { should have_route_table('C Public') }
 end
 
+describe internet_gateway('vpc-test-igw') do
+  it { should exist }
+  it { should be_attached_to('jk-test')}
+end
+
 describe subnet('A public') do
   it { should exist }
   it { should be_available }

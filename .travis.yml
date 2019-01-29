@@ -5,12 +5,13 @@ env:
 
 sudo: required
 
-deploy:
-  provider: script
-  script: bash .pipeline/deploy.sh
-  on:
-    branch: master
-  region: ap-southeast-2
-after_deploy:
-- bundle install
-- bundle exec rake spec
+jobs:
+  include:
+    - stage: deploy
+      script:
+      - echo "Deploying"
+    - stage: test
+      script:
+      - bundle install
+      - bundle exec rake spec
+

@@ -12,7 +12,7 @@ before_install:
 
 script:
   - echo "Deploying"
-  - aws cloudformation update-stack --stack-name vpc-test --template-body file://vpc.yaml
+  - aws cloudformation update-stack --stack-name vpc-test --template-body file://vpc.yaml || echo "Unable to update stack"
 
 after_success:
   - bundle install

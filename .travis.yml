@@ -1,0 +1,5 @@
+deploy:
+  provider: script
+  script: bash .pipeline/deploy.sh
+  on:
+    branch: master

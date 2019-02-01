@@ -29,7 +29,109 @@ Parameters:
     ConstraintDescription: 'Must be in the range [0-255]'
     MinValue: 0
     MaxValue: 255
+Mappings: 
+  RegionMap: 
+    ap-southeast-2: 
+      HVM64: ami-07a3bd4944eb120a0
 Resources:
+  wwwASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      HealthCheckType: "ELB"
+      LaunchConfigurationName: 
+        Ref: "wwwLC"
+      MinSize: "1"
+      MaxSize: "1"
+      LoadBalancerNames: 
+        - Ref: "ElasticLoadBalancer"
+      MetricsCollection: 
+        - 
+          Granularity: "1Minute"
+          Metrics: 
+            - "GroupMinSize"
+            - "GroupMaxSize"
+      VPCZoneIdentifier:
+        - Ref: SubnetAPrivate
+        - Ref: SubnetBPrivate
+        - Ref: SubnetCPrivate
+  wwwLC: 
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties: 
+      KeyName: "vpc-test"
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
+      InstanceType: "t2.micro"
+      HealthCheck:
+        Target: 'HTTP:80/'
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo apt-get -y update
+          sudo apt-get install -y apache2
+          echo "<h1>Hello World</h1>" | sudo tee -a /var/www/html/index.html
+      SecurityGroups:
+        - Ref: wwwSecurityGroup
+  wwwSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId:
+          Ref: "elbSecurityGroup"
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        DestinationSecurityGroupId:
+          Ref: "elbSecurityGroup"
+  elbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ELB to listen on 80 to internet
+      VpcId:
+        Ref: VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+  ElasticLoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets:
+        - Ref: SubnetAPublic
+        - Ref: SubnetBPublic
+        - Ref: SubnetCPublic
+      Listeners:
+      - LoadBalancerPort: '80'
+        InstancePort: '80'
+        Protocol: HTTP
+      HealthCheck:
+        Target:
+          Fn::Join:
+          - ''
+          - - 'HTTP:'
+            - '80'
+            - "/"
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      SecurityGroups:
+        - Ref: elbSecurityGroup
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
@@ -51,6 +153,45 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
+  NATGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIPA
+        - AllocationId
+      SubnetId:
+        Ref: SubnetAPublic
+  EIPA:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NATGatewayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIPB
+        - AllocationId
+      SubnetId:
+        Ref: SubnetBPublic
+  EIPB:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  NATGatewayC:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - EIPC
+        - AllocationId
+      SubnetId:
+        Ref: SubnetCPublic
+  EIPC:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
   SubnetAPublic:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -213,6 +354,27 @@ Resources:
       RouteTableId: !Ref RouteTableCPublic
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref InternetGateway
+  RouteTablePrivateAInternetRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTableAPrivate
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGatewayA
+  RouteTablePrivateBInternetRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTableBPrivate
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGatewayB
+  RouteTablePrivateCInternetRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTableCPrivate
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGatewayC
   NetworkAclPublic:
     Type: 'AWS::EC2::NetworkAcl'
     Properties:
@@ -282,7 +444,7 @@ Resources:
       RuleNumber: 99
       Protocol: -1
       RuleAction: allow
-      Egress: false
+      Egress: true
       CidrBlock: '0.0.0.0/0'
   NetworkAclEntryOutPrivateAllowVPC:
     Type: 'AWS::EC2::NetworkAclEntry'

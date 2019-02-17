@@ -37,9 +37,23 @@ Resources:
             HTTPPort: '80'
             HTTPSPort: '443'
             OriginProtocolPolicy: http-only
+        - DomainName: 'jk-sa-candidate.s3.amazonaws.com'
+          Id: 's3-origin'
+          S3OriginConfig:
+            OriginAccessIdentity: 'origin-access-identity/cloudfront/EDIIDEMF3LB1'
         DefaultCacheBehavior:
           ForwardedValues:
             QueryString: False
           TargetOriginId: vpc-test-origin
           ViewerProtocolPolicy: redirect-to-https
         Enabled: True
+        CacheBehaviors:
+        - AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          TargetOriginId: 's3-origin'
+          ForwardedValues:
+            QueryString: 'false'
+          ViewerProtocolPolicy: redirect-to-https
+          PathPattern: '*.png'

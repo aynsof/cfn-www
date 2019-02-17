@@ -14,7 +14,7 @@ end
 
 describe internet_gateway('vpc-test-igw') do
   it { should exist }
-  it { should be_attached_to('jk-test')}
+  it { should be_attached_to('vpc-test')}
 end
 
 describe subnet('A public') do
